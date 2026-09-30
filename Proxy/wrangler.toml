@@ -1,0 +1,13 @@
+name = "tdiq-glm-proxy"
+main = "worker.js"
+compatibility_date = "2026-09-01"
+
+routes = [
+  { pattern = "tdiq-glm-proxy.calcs.top", custom_domain = true }
+]
+
+workers_dev = true
+
+[[kv_namespaces]]
+binding = "KV"
+id = "REPLACE_WITH_YOUR_KV_NAMESPACE_ID"

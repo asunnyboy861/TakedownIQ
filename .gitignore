@@ -1,0 +1,8 @@
+.env
+keytext*.md
+COMPETITOR_REPORT.md
+icon_raw.png
+*.xcuserstate
+xcuserdata/
+DerivedData/
+.DS_Store

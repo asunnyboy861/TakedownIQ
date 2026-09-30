@@ -6,3 +6,5 @@ icon_raw.png
 xcuserdata/
 DerivedData/
 .DS_Store
+# GLM 测试通道 devKey（生产包不含此文件，自动走订阅 JWS 通道）
+TakedownIQ/GLMProxySecret.txt

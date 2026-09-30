@@ -98,6 +98,11 @@ final class FilmViewModel: ObservableObject {
             } catch is CancellationError {
                 stopMemes()
                 isProcessing = false
+            } catch let error as AIError where error == .rateLimited || error == .receiptRejected {
+                stopMemes()
+                isProcessing = false
+                errorText = error.localizedDescription
+                completion(nil)
             } catch {
                 stopMemes()
                 isProcessing = false

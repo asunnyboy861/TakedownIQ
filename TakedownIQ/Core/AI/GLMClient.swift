@@ -24,17 +24,39 @@ struct BreakdownAggregate: Sendable {
     var topDrills: [String]
 }
 
-enum AIError: Error {
+enum AIError: Error, LocalizedError {
     case upstream, empty, invalidResponse
+    case rateLimited
+    case receiptRejected
+
+    var errorDescription: String? {
+        switch self {
+        case .upstream, .invalidResponse:
+            return "Cloud service error. Try again later."
+        case .empty:
+            return "Cloud returned no result. Try again."
+        case .rateLimited:
+            return "Too many cloud requests right now. Please try again in a few minutes."
+        case .receiptRejected:
+            return "This is a Pro feature. Restore your purchase or subscribe to continue."
+        }
+    }
 }
 
 enum GLMConfig {
     static let primaryURL = URL(string: "https://cramjam-api.calcs.top")!
     static let fallbackURL = URL(string: "https://cramjam-proxy.iocompile67692.workers.dev")!
     static let model = "glm-5.3-flash"
+    // 必须与 Worker D1 `apps` 白名单注册的 appId 完全一致（验签会做 appId↔bundleId 绑定校验）
     static let appId = "takedown-iq"
-    // 测试通道 devKey（服务端 DEV_MODE=1 时可用）；生产环境删除，改为必须携带有效订阅 appTransaction
-    static let devKey = "cramjam-dev-2026"
+    /// 测试通道 devKey：从 bundle 资源 GLMProxySecret.txt 读取（该文件已 .gitignore，不随生产包分发）。
+    /// 生产包不含此文件且无订阅凭证时 → receiptRejected（引导订阅）。
+    static var devKey: String? {
+        guard let url = Bundle.main.url(forResource: "GLMProxySecret", withExtension: "txt"),
+              let raw = try? String(contentsOf: url, encoding: .utf8) else { return nil }
+        let key = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        return key.isEmpty ? nil : key
+    }
 }
 
 actor GLMClient {
@@ -42,11 +64,14 @@ actor GLMClient {
     private var activeURL: URL = GLMConfig.primaryURL
 
     /// 当前有效订阅/买断凭证的 JWS（StoreKit 2，苹果私钥签名）。
-    /// 返回 nil = 用户无有效订阅（测试期回退 devKey；生产环境应引导订阅）。
+    /// 注意：jwsRepresentation 挂在 VerificationResult 上（非 Transaction）；
+    /// 不能用 jsonRepresentation（未签名，Worker 会 401）。
     private static func currentEntitlementJWS() async -> String? {
         for await result in Transaction.currentEntitlements {
             guard case .verified(let transaction) = result,
-                  transaction.productType == .autoRenewable || transaction.productType == .nonConsumable else { continue }
+                  transaction.revocationDate == nil,
+                  transaction.productType == .autoRenewable || transaction.productType == .nonConsumable,
+                  !result.jwsRepresentation.isEmpty else { continue }
             return result.jwsRepresentation
         }
         return nil
@@ -73,12 +98,13 @@ actor GLMClient {
             "userId": AppState.deviceID,
             "payload": payload
         ]
-        // 凭证策略：有有效订阅 → 传苹果签名 JWS（生产通道，服务端白名单验签）；
-        // 无订阅 → 测试通道 devKey（仅服务端 DEV_MODE=1 时放行）
+        // 通道优先级：订阅 JWS（生产）→ devKey（开发期，文件不随生产包分发）→ 引导订阅
         if let jws = await Self.currentEntitlementJWS() {
             body["appTransaction"] = jws
+        } else if let devKey = GLMConfig.devKey {
+            body["devKey"] = devKey
         } else {
-            body["devKey"] = GLMConfig.devKey
+            throw AIError.receiptRejected
         }
         var request = URLRequest(url: activeURL)
         request.httpMethod = "POST"
@@ -86,10 +112,17 @@ actor GLMClient {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
         let (data, response) = try await URLSession.shared.data(for: request)
-        guard (response as? HTTPURLResponse)?.statusCode == 200 else {
+        guard let http = response as? HTTPURLResponse else { throw AIError.invalidResponse }
+        switch http.statusCode {
+        case 200:
+            return data
+        case 401:
+            throw AIError.receiptRejected
+        case 429:
+            throw AIError.rateLimited
+        default:
             throw AIError.upstream
         }
-        return data
     }
 
     private func complete(messages: [[String: Any]], maxTokens: Int) async throws -> String {
@@ -102,6 +135,8 @@ actor GLMClient {
         ]
         do {
             return try await extractContent(from: try await send(payload: payload))
+        } catch let error as AIError where error == .rateLimited || error == .receiptRejected {
+            throw error // 限频/凭证问题换线路无意义，直接抛给上层展示对应文案
         } catch {
             activeURL = (activeURL == GLMConfig.primaryURL) ? GLMConfig.fallbackURL : GLMConfig.primaryURL
             return try await extractContent(from: try await send(payload: payload))

@@ -24,6 +24,7 @@
 		8BD591B47BEC391FA342AEB7 /* TakedownIQApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5FEE53E65B040CF7D881779 /* TakedownIQApp.swift */; };
 		9BFE39CC46142AC30F6A2C25 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4D1CFCD5D79F8817BA548E9 /* AppState.swift */; };
 		A3E69439F340931038DAA5DF /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190B517322F979FF86C65F45 /* Models.swift */; };
+		A492A6850159C948DEF4B197 /* GLMProxySecret.txt in Resources */ = {isa = PBXBuildFile; fileRef = D20B245EA2ACC8218A6BCE4C /* GLMProxySecret.txt */; };
 		A9FAA601170832A436FAC118 /* PaywallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D781F00875BAD8FE44B782AE /* PaywallView.swift */; };
 		B23D4AE5C79163A38F08080D /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 808974AC17A4CB7706A99112 /* OnboardingView.swift */; };
 		B2EABBDCEEA620BE92C390D0 /* LibraryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA8E4AF3009ABEE19C0F1E27 /* LibraryView.swift */; };
@@ -64,6 +65,7 @@
 		BB130CD43CF683CAA8876554 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		C2F65433B9586CA569068B40 /* HealthKitWeightService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitWeightService.swift; sourceTree = "<group>"; };
 		C4D1CFCD5D79F8817BA548E9 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
+		D20B245EA2ACC8218A6BCE4C /* GLMProxySecret.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = GLMProxySecret.txt; sourceTree = "<group>"; };
 		D4F835FBD83C6642EEB8D8F6 /* PlanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanView.swift; sourceTree = "<group>"; };
 		D781F00875BAD8FE44B782AE /* PaywallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaywallView.swift; sourceTree = "<group>"; };
 		D8B81D74F17575265A246503 /* CoachChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoachChatView.swift; sourceTree = "<group>"; };
@@ -205,6 +207,7 @@
 			isa = PBXGroup;
 			children = (
 				7389D9D1623421E9771B8B0C /* Assets.xcassets */,
+				D20B245EA2ACC8218A6BCE4C /* GLMProxySecret.txt */,
 				70ECC759B676D96F29790400 /* PrivacyInfo.xcprivacy */,
 				E0C3E54616493F78A6EF7C82 /* TakedownIQ.entitlements */,
 				20AEF8C0FD4208A93B2870C2 /* App */,
@@ -326,6 +329,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				5D0D0F78CD03DA5077A6EE67 /* Assets.xcassets in Resources */,
+				A492A6850159C948DEF4B197 /* GLMProxySecret.txt in Resources */,
 				54155325696727F64C7BC08E /* PrivacyInfo.xcprivacy in Resources */,
 				0544E89F615C9E4A4BC0F7E7 /* Techniques.json in Resources */,
 			);

@@ -15,7 +15,15 @@ struct FilmCaptureView: View {
     @State private var showCamera = false
     @State private var cameraError: String?
 
-    private let identities = ["Close-up (near camera)", "I'm in red", "I'm in blue", "Solo drill on mirror"]
+    let identities = ["Close-up (near camera)", "I'm in red", "I'm in blue", "Solo drill on mirror"]
+
+    init() {
+        _filmVM = EnvironmentObject()
+        _modelContext = Environment(\.modelContext)
+        _dismiss = Environment(\.dismiss)
+        _profiles = Query()
+        _purchaseManager = StateObject(wrappedValue: PurchaseManager.shared)
+    }
 
     var body: some View {
         NavigationStack {

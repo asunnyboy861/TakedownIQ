@@ -78,8 +78,9 @@ final class PurchaseManager: ObservableObject {
                 pro = true
             }
         }
-        let seasonActive = await seasonPassEntitlementActive()
-        pro = pro || seasonActive
+        if await seasonPassEntitlementActive() {
+            pro = true
+        }
         isPro = pro
     }
 

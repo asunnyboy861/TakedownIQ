@@ -23,16 +23,17 @@ final class HealthKitWeightService: ObservableObject {
 
     func latestWeight() async -> Double? {
         guard isAvailable else { return nil }
-        return await withCheckedContinuation { (continuation: CheckedContinuation<Double?, Never>) in
-            let query = HKSampleQuery(sampleType: bodyMassType, predicate: nil, limit: 5, sortDescriptors: nil) { _, samples, _ in
-                guard let sample = samples?.compactMap({ $0 as? HKQuantitySample }).max(by: { $0.endDate < $1.endDate }) else {
+        let sort = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: false)
+        return await withCheckedContinuation { continuation in
+            let query = HKSampleQuery(sampleType: bodyMassType, predicate: nil, limit: 1, sortDescriptors: [sort]) { _, samples, _ in
+                guard let sample = samples?.first as? HKQuantitySample else {
                     continuation.resume(returning: nil)
                     return
                 }
                 let kg = sample.quantity.doubleValue(for: HKUnit.gramUnit(with: .kilo))
                 continuation.resume(returning: kg * 2.20462)
             }
-            store.execute(query)
+            self.store.execute(query)
         }
     }
 }

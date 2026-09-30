@@ -5,7 +5,8 @@ struct PlanView: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var profiles: [UserProfile]
     @Query private var allDrills: [DrillItem]
-    
+    private var pending: [DrillItem] { allDrills.filter { $0.day == PlanView.today && !$0.done } }
+    private var completed: [DrillItem] { allDrills.filter { $0.day == PlanView.today && $0.done } }
     @Query private var streaks: [StreakState]
     @State private var timerDrill: DrillItem?
     @State private var secondsLeft = 0
@@ -13,7 +14,8 @@ struct PlanView: View {
     @State private var timer: Timer?
     @State private var burst = false
 
-    
+    static var today: Date { Calendar.current.startOfDay(for: .now) }
+
     var body: some View {
         NavigationStack {
             ZStack {
@@ -37,10 +39,6 @@ struct PlanView: View {
             .alert("Drill complete — streak +1", isPresented: $burst) {}
         }
     }
-
-    private var todays: [DrillItem] { allDrills.filter { Calendar.current.isDateInToday($0.day) } }
-    private var pending: [DrillItem] { todays.filter { !$0.done } }
-    private var completed: [DrillItem] { todays.filter { $0.done } }
 
     private var progressCard: some View {
         let total = pending.count + completed.count

@@ -16,6 +16,30 @@ struct DrillDraft: Sendable {
     var cue: String
 }
 
+#if canImport(FoundationModels)
+@available(iOS 26.0, *)
+@Generable
+struct FMPlan {
+    @Guide(description: "3 to 5 drills, 15 to 20 minutes total")
+    var drills: [FMDrill]
+    @Guide(description: "one hype sentence <=12 words")
+    var hype: String
+}
+
+@available(iOS 26.0, *)
+@Generable
+struct FMDrill {
+    @Guide(description: "drill name, <=6 words")
+    var title: String
+    @Guide(description: "minutes, 3 to 8")
+    var minutes: Int
+    @Guide(description: "neutral, top, bottom, or conditioning")
+    var focus: String
+    @Guide(description: "single coaching cue, <=12 words")
+    var cue: String
+}
+#endif
+
 enum AppleAICoach {
     static var available: Bool {
         #if canImport(FoundationModels)
@@ -54,30 +78,6 @@ enum AppleAICoach {
         throw AIError.unavailable
     }
 }
-
-#if canImport(FoundationModels)
-@available(iOS 26.0, *)
-@Generable
-struct FMPlan {
-    @Guide(description: "3 to 5 drills, 15 to 20 minutes total")
-    var drills: [FMDrill]
-    @Guide(description: "one hype sentence <=12 words")
-    var hype: String
-}
-
-@available(iOS 26.0, *)
-@Generable
-struct FMDrill {
-    @Guide(description: "drill name, <=6 words")
-    var title: String
-    @Guide(description: "minutes, 3 to 8")
-    var minutes: Int
-    @Guide(description: "neutral, top, bottom, or conditioning")
-    var focus: String
-    @Guide(description: "single coaching cue, <=12 words")
-    var cue: String
-}
-#endif
 
 extension AIError {
     static let unavailable = AIError.upstream

@@ -28,9 +28,12 @@ enum AIError: Error {
 }
 
 enum GLMConfig {
-    static let primaryURL = URL(string: "https://tdiq-glm-proxy.calcs.top")!
-    static let fallbackURL = URL(string: "https://tdiq-glm-proxy.iocompile67692.workers.dev")!
+    static let primaryURL = URL(string: "https://cramjam-api.calcs.top")!
+    static let fallbackURL = URL(string: "https://cramjam-proxy.iocompile67692.workers.dev")!
     static let model = "glm-5.3-flash"
+    static let appId = "takedown-iq"
+    // 测试期 devKey；生产上架前改为传 appTransaction（StoreKit 2 JWS）
+    static let devKey = "cramjam-dev-2026"
 }
 
 actor GLMClient {
@@ -53,12 +56,17 @@ actor GLMClient {
     }
 
     private func send(payload: [String: Any]) async throws -> Data {
+        let body: [String: Any] = [
+            "appId": GLMConfig.appId,
+            "userId": AppState.deviceID,
+            "devKey": GLMConfig.devKey,
+            "payload": payload
+        ]
         var request = URLRequest(url: activeURL)
         request.httpMethod = "POST"
         request.timeoutInterval = 90
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue(AppState.deviceID, forHTTPHeaderField: "X-Device-ID")
-        request.httpBody = try JSONSerialization.data(withJSONObject: payload)
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
         let (data, response) = try await URLSession.shared.data(for: request)
         guard (response as? HTTPURLResponse)?.statusCode == 200 else {
             throw AIError.upstream
@@ -128,7 +136,7 @@ actor GLMClient {
             ["role": "system", "content": system],
             ["role": "user", "content": "Wrestler: \(profile.levelRaw), focus \(profile.positionRaw).\nObservations:\n\(listing.isEmpty ? "No technique-relevant observations — frames were unclear." : listing)"]
         ]
-        let raw = try await complete(messages: messages, maxTokens: 2048)
+        let raw = try await complete(messages: messages, maxTokens: 4096)
         struct Agg: Decodable { let summary: String }
         if let data = raw.data(using: .utf8),
            let agg = try? JSONDecoder().decode(Agg.self, from: data) {

@@ -47,7 +47,23 @@ TakedownIQ/
 | Terms of Use | https://asunnyboy861.github.io/TakedownIQ/terms.html | ✅ Active |
 
 ## Pending (manual / later phases)
-- IAP products in App Store Connect (IDs wired: com.takedowniq.pro.monthly / pro.yearly / season.pass)
+- Season Pass IAP `com.takedowniq.season.pass` ($19.99, non-renewing 90 days): must be created in ASC web UI (API key lacks inAppPurchases CREATE — 403)
+- Subscription review screenshots: both subs are MISSING_METADATA until Paywall screenshots are uploaded in ASC web (user)
+- Select build 1 and submit for review in ASC web (Apple requires manual submit)
+- whatsNew: fill later (state-locked during PREPARE_FOR_SUBMISSION)
+
+## App Store Connect (2026-09-30)
+- App record: id 6817645486, name "Takedown IQ", subtitle "AI Wrestling Coach & Film", SKU com.zzoutuo.TakedownIQ, primary locale en-US
+- Build 1 (275e038a) uploaded and VALID, attached to version 1.0 (PREPARE_FOR_SUBMISSION)
+- Categories: Sports (primary) + Health & Fitness (secondary); age questionnaire submitted (health/wellness topics = true)
+- Metadata filled: description (2069 chars), keywords (87 chars), promo text, support/marketing/privacy URLs, copyright "Copyright © 2026 he zhou", review contact HE ZHOU + notes
+- Subscription group "Takedown IQ Pro" (id 22427247): Pro Monthly com.takedowniq.pro.monthly ($8.99, id 6817652900), Pro Annual com.takedowniq.pro.yearly ($49.99, id 6817653048, 7-day FREE_TRIAL intro offer, Family Sharing)
+- Pricing: USA rows set + global equalization 348/348 POST ok → 175/175 territories both subs
+- Landing page download link backfilled with real App ID 6817645486 and pushed to GitHub Pages (live)
+- Upload fixes this session: AppIcon Contents.json missing filename (icons absent from bundle), NSHealthUpdateUsageDescription added, UIRequiresFullScreen YES (iPad multitasking warning), Release excludes GLMProxySecret.txt via EXCLUDED_SOURCE_FILE_NAMES
+
+## Previously Pending (superseded above where noted)
+- IAP products in App Store Connect (IDs wired: com.takedowniq.pro.monthly / pro.yearly / season.pass — monthly & yearly now created, season pass still manual)
 - Production: switch GLMConfig.devKey → appTransaction (StoreKit 2 JWS) before App Store submission
 
 ## Resolved (2026-09-30)

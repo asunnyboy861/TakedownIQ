@@ -52,3 +52,4 @@ TakedownIQ/
 
 ## Resolved (2026-09-30)
 - GLM API: app now uses the shared Cloudflare proxy `https://cramjam-api.calcs.top` (appId `takedown-iq`, per GLM-Cloudflare repo config doc; limits 30/hr + 200/day per appId:userId). Text + vision end-to-end tests passed (HTTP 200). TakedownIQ's own `Proxy/tdiq-glm-proxy` Worker is therefore no longer required (kept as backup).
+- Whitelist (2026-09-30 update): `takedown-iq` ↔ `com.zzoutuo.TakedownIQ` registered into the proxy D1 `apps` whitelist via /admin/apps (self-service §8.1). GLMClient now sends `appTransaction` (StoreKit 2 `Transaction.currentEntitlements` JWS) when the user has an active subscription, falling back to test-channel `devKey` otherwise; server switches to whitelist-only JWS verification when DEV_MODE is removed.

@@ -1,4 +1,5 @@
 import Foundation
+import StoreKit
 
 struct FrameShot: Identifiable, Sendable {
     let id: UUID
@@ -32,13 +33,24 @@ enum GLMConfig {
     static let fallbackURL = URL(string: "https://cramjam-proxy.iocompile67692.workers.dev")!
     static let model = "glm-5.3-flash"
     static let appId = "takedown-iq"
-    // 测试期 devKey；生产上架前改为传 appTransaction（StoreKit 2 JWS）
+    // 测试通道 devKey（服务端 DEV_MODE=1 时可用）；生产环境删除，改为必须携带有效订阅 appTransaction
     static let devKey = "cramjam-dev-2026"
 }
 
 actor GLMClient {
     static let shared = GLMClient()
     private var activeURL: URL = GLMConfig.primaryURL
+
+    /// 当前有效订阅/买断凭证的 JWS（StoreKit 2，苹果私钥签名）。
+    /// 返回 nil = 用户无有效订阅（测试期回退 devKey；生产环境应引导订阅）。
+    private static func currentEntitlementJWS() async -> String? {
+        for await result in Transaction.currentEntitlements {
+            guard case .verified(let transaction) = result,
+                  transaction.productType == .autoRenewable || transaction.productType == .nonConsumable else { continue }
+            return result.jwsRepresentation
+        }
+        return nil
+    }
 
     func runBreakdown(frames: [FrameShot], profile: UserProfile, identityContext: String) async throws -> BreakdownAggregate {
         var all: [EventObservationDraft] = []
@@ -56,12 +68,18 @@ actor GLMClient {
     }
 
     private func send(payload: [String: Any]) async throws -> Data {
-        let body: [String: Any] = [
+        var body: [String: Any] = [
             "appId": GLMConfig.appId,
             "userId": AppState.deviceID,
-            "devKey": GLMConfig.devKey,
             "payload": payload
         ]
+        // 凭证策略：有有效订阅 → 传苹果签名 JWS（生产通道，服务端白名单验签）；
+        // 无订阅 → 测试通道 devKey（仅服务端 DEV_MODE=1 时放行）
+        if let jws = await Self.currentEntitlementJWS() {
+            body["appTransaction"] = jws
+        } else {
+            body["devKey"] = GLMConfig.devKey
+        }
         var request = URLRequest(url: activeURL)
         request.httpMethod = "POST"
         request.timeoutInterval = 90

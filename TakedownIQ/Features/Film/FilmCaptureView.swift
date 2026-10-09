@@ -203,6 +203,7 @@ final class CameraCaptureViewController: UIViewController, AVCaptureFileOutputRe
     private let session = AVCaptureSession()
     private let output = AVCaptureMovieFileOutput()
     private var previewLayer: AVCaptureVideoPreviewLayer?
+    private var isSessionConfigured = false
 
     init(onFinish: @escaping (URL?) -> Void = { _ in }) {
         self.onFinish = onFinish
@@ -217,14 +218,21 @@ final class CameraCaptureViewController: UIViewController, AVCaptureFileOutputRe
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .black
-        setupSession()
         addUI()
+        requestPermissionsThenSetup()
+    }
+
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        previewLayer?.frame = view.bounds
     }
 
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
+        guard isSessionConfigured, !session.isRunning else { return }
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            self?.session.startRunning()
+            guard let self, self.isSessionConfigured, !self.session.isRunning else { return }
+            self.session.startRunning()
         }
     }
 
@@ -233,32 +241,68 @@ final class CameraCaptureViewController: UIViewController, AVCaptureFileOutputRe
         session.stopRunning()
     }
 
-    private func setupSession() {
+    /// Camera/mic permission must be granted BEFORE touching AVCaptureDeviceInput —
+    /// on a fresh install (notDetermined) input creation fails, and any early-return
+    /// without commitConfiguration leaves the session unbalanced so startRunning throws.
+    private func requestPermissionsThenSetup() {
+        let finish: (URL?) -> Void = { [weak self] url in
+            // Async: the caller mutates SwiftUI presentation state; a synchronous call
+            // from viewDidLoad would mutate it mid-view-update.
+            DispatchQueue.main.async { self?.onFinish(url) }
+        }
+        AVCaptureDevice.requestAccess(for: .video) { [weak self] videoGranted in
+            guard let self else { return }
+            guard videoGranted else { finish(nil); return }
+            AVCaptureDevice.requestAccess(for: .audio) { [weak self] _ in
+                DispatchQueue.main.async { self?.setupSession(finish: finish) }
+            }
+        }
+    }
+
+    private func setupSession(finish: @escaping (URL?) -> Void) {
         session.beginConfiguration()
         session.sessionPreset = .high
-        guard let camera = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back),
-              let input = try? AVCaptureDeviceInput(device: camera),
-              session.canAddInput(input) else {
-            onFinish(nil)
-            return
+        var configured = false
+        do {
+            guard let camera = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back) else {
+                throw NSError(domain: "TakedownIQ.Camera", code: 1,
+                              userInfo: [NSLocalizedDescriptionKey: "No back camera available"])
+            }
+            let input = try AVCaptureDeviceInput(device: camera)
+            guard session.canAddInput(input) else {
+                throw NSError(domain: "TakedownIQ.Camera", code: 2,
+                              userInfo: [NSLocalizedDescriptionKey: "Cannot add camera input"])
+            }
+            session.addInput(input)
+            if let mic = AVCaptureDevice.default(for: .audio),
+               let micInput = try? AVCaptureDeviceInput(device: mic),
+               session.canAddInput(micInput) {
+                session.addInput(micInput)
+            }
+            guard session.canAddOutput(output) else {
+                throw NSError(domain: "TakedownIQ.Camera", code: 3,
+                              userInfo: [NSLocalizedDescriptionKey: "Cannot add movie output"])
+            }
+            session.addOutput(output)
+            configured = true
+        } catch {
+            // Balanced commit below; then surface the failure to the caller.
         }
-        session.addInput(input)
-        if let mic = AVCaptureDevice.default(for: .audio),
-           let micInput = try? AVCaptureDeviceInput(device: mic),
-           session.canAddInput(micInput) {
-            session.addInput(micInput)
-        }
-        guard session.canAddOutput(output) else {
-            onFinish(nil)
-            return
-        }
-        session.addOutput(output)
+        // ALWAYS balance beginConfiguration, on every path.
         session.commitConfiguration()
-        let layer = AVCaptureVideoPreviewLayer(session: session)
-        layer.videoGravity = .resizeAspectFill
-        layer.frame = view.bounds
-        view.layer.addSublayer(layer)
-        previewLayer = layer
+
+        if configured {
+            let layer = AVCaptureVideoPreviewLayer(session: session)
+            layer.videoGravity = .resizeAspectFill
+            layer.frame = view.bounds
+            view.layer.addSublayer(layer)
+            // addUI() ran before setup, so keep the controls above the preview layer.
+            view.subviews.forEach { view.bringSubviewToFront($0) }
+            previewLayer = layer
+            isSessionConfigured = true
+        } else {
+            finish(nil)
+        }
     }
 
     private func addUI() {
